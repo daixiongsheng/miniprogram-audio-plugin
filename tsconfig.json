@@ -1,0 +1,59 @@
+{
+  "compilerOptions": {
+    // 目标代码的模块结构版本
+    "target": "es5",
+    "module": "esnext",
+    "removeComments": false,
+    // 允许未执行的代码不报错
+    "allowUnreachableCode": true,
+    // 严格模式, 强烈建议开启
+    "strict": true,
+    "importHelpers": true,
+    "esModuleInterop": true,
+    // 保留 const和 enum声明
+    "preserveConstEnums": true,
+    // 额外支持解构/forof等功能
+    "downlevelIteration": true,
+    // 是否生成声明文件
+    "declaration": true,
+    "declarationDir": "./types",
+    "moduleResolution": "node",
+    "experimentalDecorators": true,
+    "noImplicitAny": false,
+    "allowSyntheticDefaultImports": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "strictNullChecks": true,
+    "sourceMap": false,
+    "baseUrl": ".",
+    "rootDir": "./src",
+    "outDir": "./types",
+    "noImplicitThis": false,
+    "pretty": true,
+    "allowJs": true,
+    "typeRoots": [
+      "node_modules/@types",
+    ],
+    "lib": [
+      "esnext",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    }
+  },
+  "exclude": [
+    "node_modules",
+    "output",
+    "lib",
+    "test"
+  ],
+  "include": [
+    "./src",
+  ],
+  "compileOnSave": false,
+  "forceConsistentCasingInFileNames": false,
+}
