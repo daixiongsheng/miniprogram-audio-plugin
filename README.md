@@ -1,8 +1,9 @@
 # 音频插件
 
-
 ## 功能
+
 ---
+
 - 支持异常 `IOS` 中断恢复
 - 支持同时创建多个音频
 - 支持创建互斥音频
@@ -11,12 +12,17 @@
 ## 使用说明
 
 ```js
+import AudioPlugin from 'miniprogram-audio-plugin'
+Vue.use(AudioPlugin)
+
 this.$newAudio(options)
 ```
 
 ## 参数说明
+
 - options
 - 类型： string | Options
+
 ```TS
 
 export interface Options {
@@ -86,6 +92,7 @@ export interface AudioOptions {
 返回创建成功的音频代理
 
 - `AudioInstances | AudioInstance`
+
 ```TS
 export interface AudioInstances {
     [property: string]: AudioInstance;
@@ -137,39 +144,43 @@ export interface AudioInstance {
 ```
 
 ## 例子
+
 ### 创建一个音频
+
 ```ts
 // 1
 const audio = this.$newAudio('http://aa.mp3')
 // 播放它
 audio('http://aa.mp3')
 // 也可以这样 参数都是可选，参数要播放的音频链接
-audio.playAudio()
-    .play(() => {
-        console.log('audio 开始播放')
-    })
-    .end(() => {
-        console.log('audio 播放结束')
-    })
+audio
+  .playAudio()
+  .play(() => {
+    console.log('audio 开始播放')
+  })
+  .end(() => {
+    console.log('audio 播放结束')
+  })
 
 // 2
 const audio = this.$newAudio({
-    src: 'http://aa.mp3',
-    autoplay: true
+  src: 'http://aa.mp3',
+  autoplay: true,
 })
 
 // 3
 const audio = this.$newAudio({
-    bgm: {
-        src: 'http://aa.mp3',
-        autoplay: true,
-    }
+  bgm: {
+    src: 'http://aa.mp3',
+    autoplay: true,
+  },
 })
 
 // 这3种方式创建的音频返回结果一样
 ```
 
 ### 同时创建多个音频
+
 ```TS
 //
 const audio = this.$newAudio({

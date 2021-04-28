@@ -1,16 +1,16 @@
 {
-  "name": "vue-wechat-miniprogram-audio-plugin",
-  "version": "1.0.1",
+  "name": "miniprogram-audio-plugin",
+  "version": "0.0.1",
   "description": "",
   "main": "index.js",
-  "module": "dist/vue-wechat-miniprogram-audio-plugin.esm.js",
+  "module": "dist/miniprogram-audio-plugin.esm.js",
   "typings": "types/index.d.ts",
-  "repository": "https://github.com/daixiongsheng/vue-wechat-miniprogram-audio-plugin.git",
+  "repository": "https://github.com/daixiongsheng/miniprogram-audio-plugin.git",
   "author": "daixiongsheng",
   "scripts": {
     "dev": "rollup -c --watch",
     "build": "node scripts/build.js",
-    "prettier": "prettier --write 'src/**/*.{js,ts,less,md,json}'"
+    "prettier": "prettier --write '{src/**/*.{js,ts,less,md,json},README.md}'"
   },
   "files": [
     "src",
