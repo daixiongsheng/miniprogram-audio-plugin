@@ -3,18 +3,9 @@ import { isObject } from 'dxs-utils'
 if (typeof wx === 'undefined') {
   throw new Error('只支持在微信小程序使用')
 }
-const { platform } = wx.getSystemInfoSync()
-const iOS = platform === 'ios'
-
 let VueConstructor = function () {}
 export interface AudioOptions {
   src: string
-
-  /**
-   * 是否恢复被IOS系统的中断
-   * @default
-   */
-  keepAlive?: boolean
 
   /**
    * 是否是使用单独的音频，默认为false，即如果同时创建多个音频时，内部会互斥
@@ -46,7 +37,7 @@ export interface AudioOptions {
    */
   playbackRate?: number
 
-  // 同时创建多个音频时默认会为keepAlive为true的新建单独音频，
+  // 同时创建多个音频时默认会为 independent 为true的新建单独音频，
   // 其他默认共享一个音频，其他使用共享的音频同一时间只能播放一个src链接，且不支持以下的固定事件回掉
   // 可以使用audio.bgm().stop(callback).play(callback).end(callback) 进行单次事件绑定,内部使用的是once(EventName, callback)
   /* 音频开始播放的回调 */
@@ -151,9 +142,6 @@ class AudioPlugin {
 
   static ON_TIME_UPDATE = 'ON_TIME_UPDATE'
 
-  // 音频被中断后多少ms重新播放
-  static TIMER_DELAY = 300
-
   // @ts-ignore
   private readonly id: number
 
@@ -175,10 +163,12 @@ class AudioPlugin {
   private listener = new VueConstructor()
 
   constructor(options: AudioOptions = {} as AudioOptions) {
+    if (!isObject(options)) {
+      throw new Error('options must be an object')
+    }
     this.id = ++i
     const defaultOptions: AudioOptions = {
       src: '',
-      keepAlive: false,
       independent: false,
       autoplay: false,
       loop: false,
@@ -186,8 +176,6 @@ class AudioPlugin {
       playbackRate: 1,
     }
     const {
-      keepAlive,
-
       /** 音频播放事件 */
       onPlayCallback,
 
@@ -222,15 +210,6 @@ class AudioPlugin {
     this.currentTime = 0
     this.audio = wx.createInnerAudioContext()
     this.initAudio()
-
-    // IOS 有被中断的问题
-    if (keepAlive && iOS) {
-      this.timer = (setInterval(() => {
-        if (this.isPlaying && this.paused) {
-          this.playAudio()
-        }
-      }, AudioPlugin.TIMER_DELAY) as unknown) as number
-    }
   }
 
   get paused(): boolean {
@@ -247,13 +226,14 @@ class AudioPlugin {
     this.audio.onError(this.onError)
     this.audio.onSeeking(this.onSeeking)
     this.audio.onSeeked(this.onSeeked)
-    // 基础库 2.11.0 开始支持
-    // @ts-ignore
-    this.audio.onAudioInterruptionEnd(this.onAudioInterruptionEnd)
-    // @ts-ignore
-    this.audio.onAudioInterruptionBegin(this.onAudioInterruptionBegin)
-    this.audio.autoplay = this.options.autoplay as boolean
 
+    wx.onAudioInterruptionEnd(this.onAudioInterruptionEnd)
+    wx.onAudioInterruptionBegin(this.onAudioInterruptionBegin)
+
+    this.audio.autoplay = this.options.autoplay as boolean
+    this.audio.loop = this.options.loop as boolean
+    this.audio.playbackRate = this.options.playbackRate as number
+    this.audio.volume = this.options.volume as number
     if (this.options.autoplay && this.options.src) {
       this.playAudio(this.options.src)
     }
@@ -271,8 +251,6 @@ class AudioPlugin {
       throw new Error('src is required')
     }
     this.duration = this.audio.duration
-    this.audio.loop = this.options.loop as boolean
-    this.audio.volume = this.options.volume as number
     this.audio.play()
     this.isPlaying = true
   }
@@ -328,10 +306,16 @@ class AudioPlugin {
   private onSeeking = () => {}
 
   private onSeeked = () => {}
+  private onAudioInterruptionEnd = () => {
+    // 音频中断事件
+    if (this.isPlaying && this.audio.paused) {
+      this.audio.play()
+    }
+  }
 
-  private onAudioInterruptionEnd = () => {}
-
-  private onAudioInterruptionBegin = () => {}
+  private onAudioInterruptionBegin = () => {
+    // 音频中断事件
+  }
 
   play(callback?: () => void): AudioPlugin {
     callback && this.listener.$once(AudioPlugin.ON_PLAY, callback)
@@ -390,7 +374,6 @@ export interface RegisterAudioOptions {
 const defaultOptions: AudioOptions = {
   src: '',
   independent: false,
-  keepAlive: false,
 }
 
 let defaultId = 0
@@ -402,6 +385,7 @@ function dealOptions(options: Options | string): RegisterAudioOptions {
       [`default${defaultId++}`]: {
         ...defaultOptions,
         src: options,
+        independent: true,
       },
     }
   }
@@ -415,6 +399,7 @@ function dealOptions(options: Options | string): RegisterAudioOptions {
       [`default${defaultId++}`]: {
         ...defaultOptions,
         ...options,
+        independent: true,
       },
     }
   }
@@ -516,7 +501,7 @@ function addAudioIntoIns(
     if (registeredAudios.includes(key)) {
       return false
     }
-    if (options[key].independent || options[key].keepAlive) {
+    if (options[key].independent) {
       independentAudios.push(key)
     } else {
       sharedAudios.push(key)
@@ -566,6 +551,9 @@ function registerAudio(
   // 配置统一化
   const op: RegisterAudioOptions = dealOptions(options)
   const result = addAudioIntoIns(instances, op)
+  // 避免observed
+  // @ts-ignore
+  result._isVue = true
   return result
 }
 

@@ -2,11 +2,6 @@
 export interface AudioOptions {
     src: string;
     /**
-     * 是否恢复被IOS系统的中断
-     * @default
-     */
-    keepAlive?: boolean;
-    /**
      * 是否是使用单独的音频，默认为false，即如果同时创建多个音频时，内部会互斥
      * @default false
      */
@@ -102,7 +97,6 @@ declare class AudioPlugin {
     static ON_STOP: string;
     static ON_ERROR: string;
     static ON_TIME_UPDATE: string;
-    static TIMER_DELAY: number;
     private readonly id;
     isPlaying: boolean;
     duration: number;

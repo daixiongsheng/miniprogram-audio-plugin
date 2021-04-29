@@ -4,6 +4,7 @@
 
 ---
 
+- 完全兼容原先的 `baseAudio`
 - 支持异常 `IOS` 中断恢复
 - 支持同时创建多个音频
 - 支持创建互斥音频
@@ -12,9 +13,6 @@
 ## 使用说明
 
 ```js
-import AudioPlugin from 'miniprogram-audio-plugin'
-Vue.use(AudioPlugin)
-
 this.$newAudio(options)
 ```
 
@@ -32,17 +30,13 @@ export interface Options {
 export interface AudioOptions {
     src: string;
     /**
-     * 是否恢复被IOS系统的中断
-     * @default
-     */
-    keepAlive?: boolean;
-    /**
      * 是否是使用单独的音频，默认为false，即如果同时创建多个音频时，内部会互斥
      * @default false
      */
     independent?: boolean;
     /**
-     * 自动播放，当设为true且src有传里时，会自动播放
+     * 自动播放，当设为 true 且 src 有传里时，会自动播放
+     * 创建多个音频时需要指定 independent: true 才生效
      * @default false
      */
     autoplay?: boolean;
@@ -63,7 +57,7 @@ export interface AudioOptions {
      */
     playbackRate?: number;
 
-    // 同时创建多个音频时默认会为keepAlive为true的新建单独音频，
+    // 同时创建多个音频时默认会为 independent 为true的新建单独音频，
     // 其他默认共享一个音频，其他使用共享的音频同一时间只能播放一个src链接，且不支持以下的固定事件回掉
     // 可以使用audio.bgm().stop(callback).play(callback).end(callback) 进行单次事件绑定,内部使用的是once(EventName, callback)
     /* 音频开始播放的回调 */

@@ -1,9 +1,9 @@
 /*!
- * vue-wechat-miniprogram-audio-plugin v1.0.0
+ * miniprogram-audio-plugin v0.0.1
  * (c) 2020-2021 Xiongsheng Dai
  * Released under the MIT License.
  */
-var VueWechatMiniprogramAudioPlugin = (function () {
+var MiniprogramAudioPlugin = (function () {
     'use strict';
 
     /*! *****************************************************************************
@@ -146,8 +146,6 @@ var VueWechatMiniprogramAudioPlugin = (function () {
     if (typeof wx === 'undefined') {
         throw new Error('只支持在微信小程序使用');
     }
-    var platform = wx.getSystemInfoSync().platform;
-    var iOS = platform === 'ios';
     var VueConstructor = function () { };
     var i = 0;
     var AudioPlugin = /** @class */ (function () {
@@ -179,19 +177,28 @@ var VueWechatMiniprogramAudioPlugin = (function () {
             };
             this.onSeeking = function () { };
             this.onSeeked = function () { };
-            this.onAudioInterruptionEnd = function () { };
-            this.onAudioInterruptionBegin = function () { };
+            this.onAudioInterruptionEnd = function () {
+                // 音频中断事件
+                if (_this.isPlaying && _this.audio.paused) {
+                    _this.audio.play();
+                }
+            };
+            this.onAudioInterruptionBegin = function () {
+                // 音频中断事件
+            };
+            if (!dxsUtils.isObject(options)) {
+                throw new Error('options must be an object');
+            }
             this.id = ++i;
             var defaultOptions = {
                 src: '',
-                keepAlive: false,
                 independent: false,
                 autoplay: false,
                 loop: false,
                 volume: 1,
                 playbackRate: 1,
             };
-            var keepAlive = options.keepAlive, 
+            var 
             /** 音频播放事件 */
             onPlayCallback = options.onPlayCallback, 
             /** 音频暂停事件 */
@@ -218,14 +225,6 @@ var VueWechatMiniprogramAudioPlugin = (function () {
             this.currentTime = 0;
             this.audio = wx.createInnerAudioContext();
             this.initAudio();
-            // IOS 有被中断的问题
-            if (keepAlive && iOS) {
-                this.timer = setInterval(function () {
-                    if (_this.isPlaying && _this.paused) {
-                        _this.playAudio();
-                    }
-                }, AudioPlugin.TIMER_DELAY);
-            }
         }
         Object.defineProperty(AudioPlugin.prototype, "paused", {
             get: function () {
@@ -244,12 +243,12 @@ var VueWechatMiniprogramAudioPlugin = (function () {
             this.audio.onError(this.onError);
             this.audio.onSeeking(this.onSeeking);
             this.audio.onSeeked(this.onSeeked);
-            // 基础库 2.11.0 开始支持
-            // @ts-ignore
-            this.audio.onAudioInterruptionEnd(this.onAudioInterruptionEnd);
-            // @ts-ignore
-            this.audio.onAudioInterruptionBegin(this.onAudioInterruptionBegin);
+            wx.onAudioInterruptionEnd(this.onAudioInterruptionEnd);
+            wx.onAudioInterruptionBegin(this.onAudioInterruptionBegin);
             this.audio.autoplay = this.options.autoplay;
+            this.audio.loop = this.options.loop;
+            this.audio.playbackRate = this.options.playbackRate;
+            this.audio.volume = this.options.volume;
             if (this.options.autoplay && this.options.src) {
                 this.playAudio(this.options.src);
             }
@@ -266,8 +265,6 @@ var VueWechatMiniprogramAudioPlugin = (function () {
                 throw new Error('src is required');
             }
             this.duration = this.audio.duration;
-            this.audio.loop = this.options.loop;
-            this.audio.volume = this.options.volume;
             this.audio.play();
             this.isPlaying = true;
         };
@@ -325,14 +322,11 @@ var VueWechatMiniprogramAudioPlugin = (function () {
         AudioPlugin.ON_STOP = 'ON_STOP';
         AudioPlugin.ON_ERROR = 'ON_ERROR';
         AudioPlugin.ON_TIME_UPDATE = 'ON_TIME_UPDATE';
-        // 音频被中断后多少ms重新播放
-        AudioPlugin.TIMER_DELAY = 300;
         return AudioPlugin;
     }());
     var defaultOptions = {
         src: '',
         independent: false,
-        keepAlive: false,
     };
     var defaultId = 0;
     function dealOptions(options) {
@@ -341,7 +335,7 @@ var VueWechatMiniprogramAudioPlugin = (function () {
         var keys = Object.keys(options);
         if (typeof options === 'string') {
             return _a = {},
-                _a["default" + defaultId++] = __assign(__assign({}, defaultOptions), { src: options }),
+                _a["default" + defaultId++] = __assign(__assign({}, defaultOptions), { src: options, independent: true }),
                 _a;
         }
         if (keys.includes('src') ||
@@ -349,7 +343,7 @@ var VueWechatMiniprogramAudioPlugin = (function () {
             keys.includes('loop') ||
             keys.includes('volume')) {
             return _b = {},
-                _b["default" + defaultId++] = __assign(__assign({}, defaultOptions), options),
+                _b["default" + defaultId++] = __assign(__assign(__assign({}, defaultOptions), options), { independent: true }),
                 _b;
         }
         keys.forEach(function (key) {
@@ -430,7 +424,7 @@ var VueWechatMiniprogramAudioPlugin = (function () {
             if (registeredAudios.includes(key)) {
                 return false;
             }
-            if (options[key].independent || options[key].keepAlive) {
+            if (options[key].independent) {
                 independentAudios.push(key);
             }
             else {
@@ -472,6 +466,9 @@ var VueWechatMiniprogramAudioPlugin = (function () {
         // 配置统一化
         var op = dealOptions(options);
         var result = addAudioIntoIns(instances, op);
+        // 避免observed
+        // @ts-ignore
+        result._isVue = true;
         return result;
     }
     function install(Vue) {
