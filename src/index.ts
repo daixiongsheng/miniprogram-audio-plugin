@@ -117,6 +117,11 @@ export interface AudioInstance {
   pauseAudio(): void
 
   /**
+   * 继续播放音频
+   */
+  resumeAudio(): void
+
+  /**
    * 改变音量 可能有兼容性问题
    */
   changeVolume(volume: number): void
@@ -153,8 +158,6 @@ class AudioPlugin {
   public duration: number
 
   public currentTime: number
-
-  public timer?: number
 
   readonly options: AudioOptions
 
@@ -240,9 +243,6 @@ class AudioPlugin {
   }
 
   public playAudio(src?: string): void {
-    if (src && src !== this.options.src) {
-      this.listener.$off()
-    }
     if (!src && this.options.src && this.isPlaying && !this.paused) {
       return
     }
@@ -268,8 +268,13 @@ class AudioPlugin {
   public destroy(): void {
     this.isPlaying = false
     this.listener.$destroy()
-    this.timer && clearInterval(this.timer)
     this.audio.destroy()
+  }
+
+  public resumeAudio(): void {
+    if (!this.isPlaying && this.paused) {
+      this.audio.play()
+    }
   }
 
   private onPlayCallback = () => {
@@ -357,6 +362,10 @@ class AudioPlugin {
     this.audio.playbackRate = rate
     this.options.playbackRate = rate
   }
+
+  clearListener(): void {
+    this.listener.$off()
+  }
 }
 
 export interface GlobalInstances {
@@ -425,8 +434,12 @@ function dealOptions(options: Options | string): RegisterAudioOptions {
   return o
 }
 
-function createProxyInstance(audio: AudioPlugin, _src: string): AudioInstance {
-  const fun: AudioInstance = function (src = _src): AudioInstance {
+function createProxyInstance(
+  audio: AudioPlugin,
+  _src: string,
+  isSharedAudio: boolean = false
+): AudioInstance {
+  const fun: AudioInstance = function fun(src = _src): AudioInstance {
     fun.playAudio(src)
     return fun
   }
@@ -456,6 +469,9 @@ function createProxyInstance(audio: AudioPlugin, _src: string): AudioInstance {
     return fun
   }
   fun.playAudio = function playAudio(src = _src): AudioInstance {
+    if (isSharedAudio && src !== audio.options.src) {
+      audio.clearListener()
+    }
     audio.playAudio(src)
     return fun
   }
@@ -465,6 +481,10 @@ function createProxyInstance(audio: AudioPlugin, _src: string): AudioInstance {
   }
   fun.changePlayRate = function changePlayRate(rate: number): AudioInstance {
     audio.changePlayRate(rate)
+    return fun
+  }
+  fun.resumeAudio = function resumeAudio(): AudioInstance {
+    audio.resumeAudio()
     return fun
   }
   return fun
@@ -486,7 +506,7 @@ function createSharedAudio(
   shareKey: string
 ): AudioInstance {
   const audio = ins[shareKey] || (ins[shareKey] = new AudioPlugin())
-  return createProxyInstance(audio, options.src)
+  return createProxyInstance(audio, options.src, true)
 }
 
 function addAudioIntoIns(

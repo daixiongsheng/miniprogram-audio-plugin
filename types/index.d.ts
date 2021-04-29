@@ -82,6 +82,10 @@ export interface AudioInstance {
      */
     pauseAudio(): void;
     /**
+     * 继续播放音频
+     */
+    resumeAudio(): void;
+    /**
      * 改变音量 可能有兼容性问题
      */
     changeVolume(volume: number): void;
@@ -101,7 +105,6 @@ declare class AudioPlugin {
     isPlaying: boolean;
     duration: number;
     currentTime: number;
-    timer?: number;
     readonly options: AudioOptions;
     private audio;
     private listener;
@@ -112,6 +115,7 @@ declare class AudioPlugin {
     stopAudio(): void;
     pauseAudio(): void;
     destroy(): void;
+    resumeAudio(): void;
     private onPlayCallback;
     private onStopCallback;
     private onPauseCallback;
@@ -130,6 +134,7 @@ declare class AudioPlugin {
     timeupdate(callback?: () => void): AudioPlugin;
     changeVolume(volume: number): void;
     changePlayRate(rate: number): void;
+    clearListener(): void;
 }
 export interface GlobalInstances {
     [property: string]: AudioPlugin;

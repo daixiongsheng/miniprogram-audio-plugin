@@ -1,5 +1,5 @@
 /*!
- * miniprogram-audio-plugin v0.0.1
+ * miniprogram-audio-plugin v0.0.2
  * (c) 2020-2021 Xiongsheng Dai
  * Released under the MIT License.
  */
@@ -144,9 +144,6 @@ var AudioPlugin = /** @class */ (function () {
         }
     };
     AudioPlugin.prototype.playAudio = function (src) {
-        if (src && src !== this.options.src) {
-            this.listener.$off();
-        }
         if (!src && this.options.src && this.isPlaying && !this.paused) {
             return;
         }
@@ -169,8 +166,12 @@ var AudioPlugin = /** @class */ (function () {
     AudioPlugin.prototype.destroy = function () {
         this.isPlaying = false;
         this.listener.$destroy();
-        this.timer && clearInterval(this.timer);
         this.audio.destroy();
+    };
+    AudioPlugin.prototype.resumeAudio = function () {
+        if (!this.isPlaying && this.paused) {
+            this.audio.play();
+        }
     };
     AudioPlugin.prototype.play = function (callback) {
         callback && this.listener.$once(AudioPlugin.ON_PLAY, callback);
@@ -205,6 +206,9 @@ var AudioPlugin = /** @class */ (function () {
         }
         this.audio.playbackRate = rate;
         this.options.playbackRate = rate;
+    };
+    AudioPlugin.prototype.clearListener = function () {
+        this.listener.$off();
     };
     AudioPlugin.ON_PLAY = 'ON_PLAY';
     AudioPlugin.ON_PAUSE = 'ON_PAUSE';
@@ -250,8 +254,9 @@ function dealOptions(options) {
     });
     return o;
 }
-function createProxyInstance(audio, _src) {
-    var fun = function (src) {
+function createProxyInstance(audio, _src, isSharedAudio) {
+    if (isSharedAudio === void 0) { isSharedAudio = false; }
+    var fun = function fun(src) {
         if (src === void 0) { src = _src; }
         fun.playAudio(src);
         return fun;
@@ -282,6 +287,9 @@ function createProxyInstance(audio, _src) {
     };
     fun.playAudio = function playAudio(src) {
         if (src === void 0) { src = _src; }
+        if (isSharedAudio && src !== audio.options.src) {
+            audio.clearListener();
+        }
         audio.playAudio(src);
         return fun;
     };
@@ -291,6 +299,10 @@ function createProxyInstance(audio, _src) {
     };
     fun.changePlayRate = function changePlayRate(rate) {
         audio.changePlayRate(rate);
+        return fun;
+    };
+    fun.resumeAudio = function resumeAudio() {
+        audio.resumeAudio();
         return fun;
     };
     return fun;
@@ -303,7 +315,7 @@ function createIndependentAudio(options, ins, key) {
 var sharedAudioId = 0;
 function createSharedAudio(options, ins, shareKey) {
     var audio = ins[shareKey] || (ins[shareKey] = new AudioPlugin());
-    return createProxyInstance(audio, options.src);
+    return createProxyInstance(audio, options.src, true);
 }
 function addAudioIntoIns(instances, options) {
     var registeredAudios = Object.keys(instances);
