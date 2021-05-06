@@ -153,7 +153,8 @@ class AudioPlugin {
   // 用户当前想要的状态
   public isPlaying: boolean
 
-  // 内部实例的状态
+  // 是否是手动暂停的
+  public isPaused = false
 
   public duration: number
 
@@ -262,6 +263,7 @@ class AudioPlugin {
 
   public pauseAudio(): void {
     this.isPlaying = false
+    this.isPaused = true
     this.audio.pause()
   }
 
@@ -272,7 +274,8 @@ class AudioPlugin {
   }
 
   public resumeAudio(): void {
-    if (!this.isPlaying && this.paused) {
+    if (!this.isPlaying && this.paused && this.isPaused) {
+      this.isPaused = false
       this.audio.play()
     }
   }
@@ -372,9 +375,27 @@ export interface GlobalInstances {
   [property: string]: AudioPlugin
 }
 
-export interface AudioInstances {
-  [property: string]: AudioInstance
+interface AudioInstanceExtension {
+  /**
+   * 手动停止注册的全部音频
+   */
+  stopAudio: () => void
+
+  /**
+   * 手动暂停注册的全部音频
+   */
+  pauseAudio(): void
+
+  /**
+   * 继续播放上次被暂停的音频
+   */
+  resumeAudio(): void
+  // | 'stopAudio' | 'pauseAudio' | 'resumeAudio'
 }
+
+type AudioInstances = {
+  [property: string]: AudioInstance
+} & AudioInstanceExtension
 
 export interface RegisterAudioOptions {
   [property: string]: AudioOptions
@@ -543,6 +564,30 @@ function addAudioIntoIns(
     )
   })
   keys = Object.keys(o)
+  o.resumeAudio = function resumeAudio() {
+    independentAudios.forEach((key) => {
+      o[key].resumeAudio()
+    })
+    if (sharedAudios.length) {
+      o[sharedAudios[0]].resumeAudio()
+    }
+  }
+  o.pauseAudio = function pauseAudio() {
+    independentAudios.forEach((key) => {
+      o[key].pauseAudio()
+    })
+    if (sharedAudios.length) {
+      o[sharedAudios[0]].pauseAudio()
+    }
+  }
+  o.stopAudio = function stopAudio() {
+    independentAudios.forEach((key) => {
+      o[key].stopAudio()
+    })
+    if (sharedAudios.length) {
+      o[sharedAudios[0]].stopAudio()
+    }
+  }
   if (keys.length === 1) {
     return o[keys[0]]
   }
@@ -552,7 +597,7 @@ function registerAudio(
   options: Options | string
 ): AudioInstances | AudioInstance {
   if (!this._isVue) {
-    throw new Error('目前只支持在vue中使用')
+    throw new Error('目前只支持在vue实例中使用')
   }
   if (options === void 0) {
     throw new Error('options is required')

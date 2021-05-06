@@ -103,6 +103,7 @@ declare class AudioPlugin {
     static ON_TIME_UPDATE: string;
     private readonly id;
     isPlaying: boolean;
+    isPaused: boolean;
     duration: number;
     currentTime: number;
     readonly options: AudioOptions;
@@ -138,9 +139,6 @@ declare class AudioPlugin {
 }
 export interface GlobalInstances {
     [property: string]: AudioPlugin;
-}
-export interface AudioInstances {
-    [property: string]: AudioInstance;
 }
 export interface RegisterAudioOptions {
     [property: string]: AudioOptions;

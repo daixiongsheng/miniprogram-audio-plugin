@@ -1,5 +1,5 @@
 /*!
- * miniprogram-audio-plugin v0.0.2
+ * miniprogram-audio-plugin v0.0.3
  * (c) 2020-2021 Xiongsheng Dai
  * Released under the MIT License.
  */
@@ -152,6 +152,8 @@ var MiniprogramAudioPlugin = (function () {
         function AudioPlugin(options) {
             var _this = this;
             if (options === void 0) { options = {}; }
+            // 是否是手动暂停的
+            this.isPaused = false;
             this.listener = new VueConstructor();
             this.onPlayCallback = function () {
                 _this.listener.$emit(AudioPlugin.ON_PLAY);
@@ -271,6 +273,7 @@ var MiniprogramAudioPlugin = (function () {
         };
         AudioPlugin.prototype.pauseAudio = function () {
             this.isPlaying = false;
+            this.isPaused = true;
             this.audio.pause();
         };
         AudioPlugin.prototype.destroy = function () {
@@ -279,7 +282,8 @@ var MiniprogramAudioPlugin = (function () {
             this.audio.destroy();
         };
         AudioPlugin.prototype.resumeAudio = function () {
-            if (!this.isPlaying && this.paused) {
+            if (!this.isPlaying && this.paused && this.isPaused) {
+                this.isPaused = false;
                 this.audio.play();
             }
         };
@@ -455,6 +459,30 @@ var MiniprogramAudioPlugin = (function () {
             o[key] = createSharedAudio(options[key], instances, "shared" + sharedAudioId);
         });
         keys = Object.keys(o);
+        o.resumeAudio = function resumeAudio() {
+            independentAudios.forEach(function (key) {
+                o[key].resumeAudio();
+            });
+            if (sharedAudios.length) {
+                o[sharedAudios[0]].resumeAudio();
+            }
+        };
+        o.pauseAudio = function pauseAudio() {
+            independentAudios.forEach(function (key) {
+                o[key].pauseAudio();
+            });
+            if (sharedAudios.length) {
+                o[sharedAudios[0]].pauseAudio();
+            }
+        };
+        o.stopAudio = function stopAudio() {
+            independentAudios.forEach(function (key) {
+                o[key].stopAudio();
+            });
+            if (sharedAudios.length) {
+                o[sharedAudios[0]].stopAudio();
+            }
+        };
         if (keys.length === 1) {
             return o[keys[0]];
         }
@@ -462,7 +490,7 @@ var MiniprogramAudioPlugin = (function () {
     }
     function registerAudio(options) {
         if (!this._isVue) {
-            throw new Error('目前只支持在vue中使用');
+            throw new Error('目前只支持在vue实例中使用');
         }
         if (options === void 0) {
             throw new Error('options is required');
